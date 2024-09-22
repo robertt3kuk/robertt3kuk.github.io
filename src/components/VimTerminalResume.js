@@ -6,10 +6,8 @@ import styles from './VimTerminalResume.module.css';
 const VimTerminalResume = () => {
   const [content, setContent] = useState('');
   const [mode, setMode] = useState('normal');
-  const [cursor, setCursor] = useState(0);
   const [activeTab, setActiveTab] = useState('resume');
   const [commandLine, setCommandLine] = useState('');
-  const [scrollPosition, setScrollPosition] = useState(0);
   const contentRef = useRef(null);
   const terminalRef = useRef(null);
 
@@ -20,20 +18,21 @@ Software Engineer
 Contact:
 • Email: awesome.abaildaev@yandex.kz
 • Phone: +77073137691
-• LinkedIn: linkedin.com/in/robertt3kuk
-• GitHub: github.com/robertt3kuk
-• Telegram: t.me/biqontie
+• LinkedIn: /in/robertt3kuk
+• GitHub: /robertt3kuk
+• Telegram: @biqontie
 
 Core Skills:
-• Go • MongoDB • PostgreSQL • AWS • GrafanaLoki
-• gRPC • REST API • GraphQL • JavaScript • DevOps
+Go, MongoDB, PostgreSQL, AWS, GrafanaLoki, gRPC, REST API, GraphQL, JavaScript, DevOps
 
 Professional Profile:
-Skilled Go software engineer with expertise in MongoDB and PostgreSQL databases. Experienced in GraphQL, REST API, and gRPC technologies. Passionate about Linux (Unix) operating systems with strong DevOps skills for server management and AWS deployments using Caddy.
+Skilled Go software engineer with expertise in MongoDB and PostgreSQL databases.
+Experienced in GraphQL, REST API, and gRPC technologies.
+Passionate about Linux (Unix) operating systems with strong DevOps skills for server management and AWS deployments using Caddy.
 
 Career Summary:
 
-Gexabyte, Almaty | Golang Backend Developer (August 2024 - Present)
+Gexabyte | Golang Backend Developer (August 2024 - Present)
 • Built backend system using Ethereum Go library, integrating smart contracts
 • Tested smart contracts on Sepolia network
 • Utilized IPFS via Pinata for decentralized file storage
@@ -41,21 +40,21 @@ Gexabyte, Almaty | Golang Backend Developer (August 2024 - Present)
 • Collaborated with product managers and analysts
 • Used MinIO for off-chain storage of images
 
-Union Strategies, Toronto | Golang Backend Developer (Feb 2023 - July 2024)
+Union Strategies | Golang Backend Developer (Feb 2023 - July 2024)
 • Developed and maintained backend for union's system
 • Monitored system performance and implemented improvements
 • Designed and implemented new services
 • Stayed updated with Go programming language trends
 
-mvp14, Astana | Golang Backend Developer (Feb 2023 - Jun 2023)
+mvp14 | Golang Backend Developer (Feb 2023 - Jun 2023)
 • Developed CRM system for construction workers using Golang, PostgreSQL, and S3
 • Implemented user management, task tracking, and QR code verification
 
-BilimX, Pavlodar | Golang Backend Developer (Nov 2022 - Feb 2023)
+BilimX | Golang Backend Developer (Nov 2022 - Feb 2023)
 • Created edtech platform for schools using Golang and PostgreSQL
 • Implemented secure session management and licensing system
 
-WeLoveFlutterFlow, Astana | Golang Backend Developer (Jun 2021 - Oct 2022)
+WeLoveFlutterFlow | Golang Backend Developer (Jun 2021 - Oct 2022)
 • Built CRM platform using Golang & PostgreSQL
 • Developed RESTful API and role-based visibility features
 • Created efficient project management and collaboration solution
@@ -74,40 +73,15 @@ Type ':help' for available commands.
     terminalRef.current.focus();
   }, []);
 
-  const handleScroll = (direction) => {
-    const scrollAmount = direction === 'up' ? -30 : 30;
-    if (contentRef.current) {
-      contentRef.current.scrollTop += scrollAmount;
-      setScrollPosition(contentRef.current.scrollTop);
-    }
-  };
-
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       setMode('normal');
       setCommandLine('');
-    } else if (mode === 'normal') {
-      switch (e.key) {
-        case 'j': handleScroll('down'); break;
-        case 'k': handleScroll('up'); break;
-        case 'i': setMode('insert'); break;
-        case ':': setMode('command'); setCommandLine(':'); break;
-        default: break;
-      }
-    } else if (mode === 'insert') {
-      handleInsertMode(e);
+    } else if (mode === 'normal' && e.key === ':') {
+      setMode('command');
+      setCommandLine(':');
     } else if (mode === 'command') {
       handleCommandMode(e);
-    }
-  };
-
-  const handleInsertMode = (e) => {
-    if (e.key === 'Backspace') {
-      setContent(content.slice(0, cursor - 1) + content.slice(cursor));
-      setCursor(Math.max(0, cursor - 1));
-    } else if (e.key.length === 1) {
-      setContent(content.slice(0, cursor) + e.key + content.slice(cursor));
-      setCursor(cursor + 1);
     }
   };
 
@@ -174,27 +148,25 @@ Type ':help' for available commands.
     <div className={styles.terminal} onKeyDown={handleKeyDown} tabIndex="0" ref={terminalRef}>
       <div className={styles.header}>
         <Terminal size={18} />
-        <h1>robertt3kuk's Terminal Resume</h1>
+        <h1>robertt3kuk's Resume</h1>
       </div>
       <div className={styles.tabs}>
         <button
-          className={activeTab === 'resume' ? styles.active : ''}
+          className={`${styles.tabButton} ${activeTab === 'resume' ? styles.active : ''}`}
           onClick={() => setActiveTab('resume')}
         >
           Resume
         </button>
         <button
-          className={activeTab === 'github' ? styles.active : ''}
+          className={`${styles.tabButton} ${activeTab === 'github' ? styles.active : ''}`}
           onClick={() => setActiveTab('github')}
         >
-          GitHub Projects
+          GitHub
         </button>
       </div>
       <div className={styles.content} ref={contentRef}>
         {activeTab === 'resume' ? (
-          <pre>
-            {content}
-          </pre>
+          <pre>{content}</pre>
         ) : (
           <div className={styles.githubProjects}>
             {githubProjects.map((project, index) => (
@@ -209,7 +181,7 @@ Type ':help' for available commands.
       </div>
       <div className={styles.footer}>
         <div className={styles.mode}>
-          {mode.toUpperCase()} | Line: {Math.floor(scrollPosition / 30) + 1}
+          {mode.toUpperCase()}
         </div>
         <div className={styles.commandLine}>
           {commandLine}
