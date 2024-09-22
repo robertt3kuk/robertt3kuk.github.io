@@ -1,24 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Terminal, Github, Linkedin, Mail, Phone, MessageCircle } from 'lucide-react';
-
-const GruvboxDark = {
-  bg: '#282828',
-  fg: '#ebdbb2',
-  gray: '#928374',
-  red: '#cc241d',
-  green: '#98971a',
-  yellow: '#d79921',
-  blue: '#458588',
-  purple: '#b16286',
-  aqua: '#689d6a',
-  orange: '#d65d0e',
-};
+import { jsPDF } from "jspdf";
+import styles from './VimTerminalResume.module.css';
 
 const VimTerminalResume = () => {
   const [content, setContent] = useState('');
   const [mode, setMode] = useState('normal');
   const [cursor, setCursor] = useState(0);
   const [activeTab, setActiveTab] = useState('resume');
+  const [commandLine, setCommandLine] = useState('');
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const contentRef = useRef(null);
+  const terminalRef = useRef(null);
 
   const resumeContent = `
 Bekbolat Abaildayev (robertt3kuk)
@@ -78,66 +71,38 @@ Type ':help' for available commands.
 
   useEffect(() => {
     setContent(resumeContent);
+    terminalRef.current.focus();
   }, []);
 
-  const handleKeyDown = (e) => {
-    if (e.ctrlKey && e.key === 'c') {
-      setMode('normal');
-      return;
-    }
-
-    if (mode === 'command' && e.key === 'Enter') {
-      handleCommand(e.target.value);
-      setMode('normal');
-      e.target.value = '';
-      return;
-    }
-
-    if (mode !== 'command') {
-      e.preventDefault();
-    }
-
-    switch (mode) {
-      case 'normal':
-        handleNormalMode(e);
-        break;
-      case 'insert':
-        handleInsertMode(e);
-        break;
-      default:
-        break;
+  const handleScroll = (direction) => {
+    const scrollAmount = direction === 'up' ? -30 : 30;
+    if (contentRef.current) {
+      contentRef.current.scrollTop += scrollAmount;
+      setScrollPosition(contentRef.current.scrollTop);
     }
   };
 
-  const handleNormalMode = (e) => {
-    switch (e.key) {
-      case 'h':
-        setCursor(Math.max(0, cursor - 1));
-        break;
-      case 'l':
-        setCursor(Math.min(content.length - 1, cursor + 1));
-        break;
-      case 'j':
-        setCursor(Math.min(content.length - 1, cursor + 80));
-        break;
-      case 'k':
-        setCursor(Math.max(0, cursor - 80));
-        break;
-      case 'i':
-        setMode('insert');
-        break;
-      case ':':
-        setMode('command');
-        break;
-      default:
-        break;
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setMode('normal');
+      setCommandLine('');
+    } else if (mode === 'normal') {
+      switch (e.key) {
+        case 'j': handleScroll('down'); break;
+        case 'k': handleScroll('up'); break;
+        case 'i': setMode('insert'); break;
+        case ':': setMode('command'); setCommandLine(':'); break;
+        default: break;
+      }
+    } else if (mode === 'insert') {
+      handleInsertMode(e);
+    } else if (mode === 'command') {
+      handleCommandMode(e);
     }
   };
 
   const handleInsertMode = (e) => {
-    if (e.key === 'Escape') {
-      setMode('normal');
-    } else if (e.key === 'Backspace') {
+    if (e.key === 'Backspace') {
       setContent(content.slice(0, cursor - 1) + content.slice(cursor));
       setCursor(Math.max(0, cursor - 1));
     } else if (e.key.length === 1) {
@@ -146,20 +111,32 @@ Type ':help' for available commands.
     }
   };
 
-  const handleCommand = (cmd) => {
-    switch (cmd.toLowerCase()) {
+  const handleCommandMode = (e) => {
+    if (e.key === 'Enter') {
+      executeCommand(commandLine);
+      setCommandLine('');
+      setMode('normal');
+    } else if (e.key === 'Backspace') {
+      setCommandLine(commandLine.slice(0, -1));
+    } else if (e.key.length === 1) {
+      setCommandLine(commandLine + e.key);
+    }
+  };
+
+  const executeCommand = (cmd) => {
+    switch (cmd.slice(1).toLowerCase()) {
       case 'q':
       case 'quit':
         alert('Thanks for viewing my resume!');
         break;
       case 'w':
       case 'write':
-        alert('Resume saved (not really, this is just a demo)');
+        saveAsPDF();
         break;
       case 'help':
         setContent(`Available commands:
 :q or :quit - Exit
-:w or :write - Save
+:w or :write - Save resume as PDF
 :help - Show this help message
 :github - View GitHub projects
 :resume - View resume
@@ -177,88 +154,75 @@ Type ':help' for available commands.
     }
   };
 
+  const saveAsPDF = () => {
+    const doc = new jsPDF();
+    const lines = content.split('\n');
+    let y = 10;
+    lines.forEach(line => {
+      if (y > 280) {
+        doc.addPage();
+        y = 10;
+      }
+      doc.text(10, y, line);
+      y += 7;
+    });
+    doc.save("robertt3kuk_resume.pdf");
+    setContent("Resume saved as PDF.");
+  };
+
   return (
-    <div
-      className="bg-[#282828] text-[#ebdbb2] p-4 font-mono h-screen flex flex-col"
-      style={{ fontFamily: 'Hack, monospace' }}
-      onKeyDown={handleKeyDown}
-      tabIndex="0"
-    >
-      <div className="flex items-center mb-4 text-[#b8bb26]">
-        <Terminal className="mr-2" />
-        <h1 className="text-xl">robertt3kuk's Terminal Resume</h1>
+    <div className={styles.terminal} onKeyDown={handleKeyDown} tabIndex="0" ref={terminalRef}>
+      <div className={styles.header}>
+        <Terminal size={18} />
+        <h1>robertt3kuk's Terminal Resume</h1>
       </div>
-      <div className="flex space-x-2 mb-4">
+      <div className={styles.tabs}>
         <button
-          className={`px-2 py-1 rounded ${activeTab === 'resume' ? 'bg-[#3c3836]' : 'bg-[#282828]'}`}
+          className={activeTab === 'resume' ? styles.active : ''}
           onClick={() => setActiveTab('resume')}
         >
           Resume
         </button>
         <button
-          className={`px-2 py-1 rounded ${activeTab === 'github' ? 'bg-[#3c3836]' : 'bg-[#282828]'}`}
+          className={activeTab === 'github' ? styles.active : ''}
           onClick={() => setActiveTab('github')}
         >
           GitHub Projects
         </button>
       </div>
-      <div className="flex-grow overflow-auto bg-[#3c3836] p-4 rounded shadow-inner">
+      <div className={styles.content} ref={contentRef}>
         {activeTab === 'resume' ? (
-          <div className="whitespace-pre-wrap">
-            {content.slice(0, cursor)}
-            <span className="bg-[#928374] text-[#282828]">{content[cursor] || ' '}</span>
-            {content.slice(cursor + 1)}
-          </div>
+          <pre>
+            {content}
+          </pre>
         ) : (
-          <div>
-            <h2 className="text-lg font-semibold mb-4 text-[#b8bb26]">GitHub Projects</h2>
+          <div className={styles.githubProjects}>
             {githubProjects.map((project, index) => (
-              <div key={index} className="mb-4">
-                <h3 className="font-semibold text-[#8ec07c]">{project.name}</h3>
+              <div key={index} className={styles.project}>
+                <h3>{project.name}</h3>
                 <p>{project.description}</p>
-                <a
-                  href={project.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#83a598] hover:underline"
-                >
-                  View on GitHub
-                </a>
+                <a href={project.url} target="_blank" rel="noopener noreferrer">View on GitHub</a>
               </div>
             ))}
           </div>
         )}
       </div>
-      <div className="mt-4 flex justify-between items-center">
-        <div>
-          Mode: {mode} | Cursor: {cursor}
+      <div className={styles.footer}>
+        <div className={styles.mode}>
+          {mode.toUpperCase()} | Line: {Math.floor(scrollPosition / 30) + 1}
         </div>
-        <div className="flex space-x-4">
-          <a href="https://github.com/robertt3kuk" target="_blank" rel="noopener noreferrer" className="text-[#b8bb26]">
-            <Github />
-          </a>
-          <a href="https://linkedin.com/in/robertt3kuk" target="_blank" rel="noopener noreferrer" className="text-[#8ec07c]">
-            <Linkedin />
-          </a>
-          <a href="mailto:awesome.abaildaev@yandex.kz" className="text-[#fe8019]">
-            <Mail />
-          </a>
-          <a href="tel:+77073137691" className="text-[#fabd2f]">
-            <Phone />
-          </a>
-          <a href="https://t.me/biqontie" target="_blank" rel="noopener noreferrer" className="text-[#83a598]">
-            <MessageCircle />
-          </a>
+        <div className={styles.commandLine}>
+          {commandLine}
+          {mode === 'command' && <span className={styles.cursor}>_</span>}
+        </div>
+        <div className={styles.contactLinks}>
+          <a href="https://github.com/robertt3kuk" target="_blank" rel="noopener noreferrer"><Github size={18} /></a>
+          <a href="https://linkedin.com/in/robertt3kuk" target="_blank" rel="noopener noreferrer"><Linkedin size={18} /></a>
+          <a href="mailto:awesome.abaildaev@yandex.kz"><Mail size={18} /></a>
+          <a href="tel:+77073137691"><Phone size={18} /></a>
+          <a href="https://t.me/biqontie" target="_blank" rel="noopener noreferrer"><MessageCircle size={18} /></a>
         </div>
       </div>
-      {mode === 'command' && (
-        <input
-          type="text"
-          className="mt-2 p-1 bg-[#3c3836] text-[#ebdbb2] border border-[#928374] rounded"
-          autoFocus
-          onBlur={() => setMode('normal')}
-        />
-      )}
     </div>
   );
 };
