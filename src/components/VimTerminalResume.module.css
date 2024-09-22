@@ -9,7 +9,7 @@ html {
 .terminal {
     background-color: #282c34;
     color: #abb2bf;
-    font-family: 'Fira Code', monospace;
+    font-family: 'Hack', monospace;
     height: 100vh;
     width: 100vw;
     display: flex;
